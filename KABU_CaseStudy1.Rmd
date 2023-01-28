@@ -1,0 +1,173 @@
+---
+title: "Multiple Regression Analysis Case Study"
+author: "A. Wagala"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+In this case study, we use the Base Ball Players Data using the following Steps
+
+### Step 1: Data Collection
+We utilize the MLB data "MLB_data.txt". It contains 1034 records of
+heights and weights for some current and recent Major League Baseball (MLB)
+Players. 
+This dataset includes the following variables:
+
+-  Name: MLB Player Name,
+-  Team: The Baseball team the player was a member of at the time the data was
+acquired,
+-  Position: Player field position,
+-  Height: Player height in inch,
+-  Weight: Player weight in pounds, and
+-  Age: Player age at time of record.
+
+This is an R Markdown presentation. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document.
+
+## Step 2: Exploring and Preparing the Data
+Load the data 
+```{r, echo=TRUE}
+#Load the data
+mlb <- read.delim("C:/Users/kimut/Downloads/regression aalysis/MLB_data.txt")
+str(mlb)
+mlb<-mlb[, -1]
+```
+The  output shows that the variable TEAM and Position
+are misspecified as characters. We can fix this by using the function as.
+factor() to convert numerical or character vectors to factors.
+
+```{r}
+mlb$Team<-as.factor(mlb$Team)
+mlb$Position<-as.factor(mlb$Position)
+```
+We can explore the data by starting with the basic statistics
+```{r}
+summary(mlb$Weight)
+hist(mlb$Weight, main = "Histogram for Weights")
+```
+
+The plot shows that this distribution appears somewhat right-skewed.
+
+- We can do further exploration by to obtaining a compact dataset summary where we can mark heavy weight and light weight players (according to light < median < heavy) by different colors in the plot.
+
+```{r}
+#Pair plots of the MLB data by player’s light (red) or heavy (blue) weights
+require(GGally)
+mlb_binary = mlb
+mlb_binary$bi_weight =
+  as.factor(ifelse(mlb_binary$Weight>median(mlb_binary$Weight),1,0))
+g_weight <- ggpairs(data=mlb_binary[-1], title="MLB Light/Heavy Weights",
+                    mapping=ggplot2::aes(colour = bi_weight),
+                    lower=list(combo=wrap("facethist",binwidth=1)))
+g_weight
+```
+
+-We can also mark player positions by different colors in the plot.
+
+```{r}
+g_position <- ggpairs(data=mlb[-1], title="MLB by Position",
+                      mapping=ggplot2::aes(colour = Position),
+                      lower=list(combo=wrap("facethist",binwidth=1)))
+g_position
+```
+
+We now explore the predictors
+
+```{r}
+table(mlb$Team)
+table(mlb$Position)
+summary(mlb$Height)
+summary(mlb$Age)
+```
+In this case, we have two numerical predictors, two categorical predictors and
+1,034 observations.
+
+### Exploring Relationships Among Features: The Correlation Matrix
+
+- Before fitting a model, its important to examine the independence of the  potential predictors and the dependent variable.
+- Multiple linear regression assumes that predictors are all
+independent of each other. 
+```{r}
+cor(mlb[c("Weight", "Height", "Age")])
+```
+- This looks very good and wouldn’t cause any multicollinearity problem. 
+- If two of our predictors are highly correlated, they both provide almost the same information, which could implymulticollinearity. 
+- A common practice is to delete one of them in the model or use dimensionality reduction methods.
+Furthermore, we can visualize the correlation as follows
+```{r}
+pairs(mlb[c("Weight", "Height", "Age")])
+```
+
+The above plots do not give a clear sense of the linearity of the data. We can use other packages to get a better feel. 
+
+```{r}
+library(psych)
+pairs.panels(mlb[, c("Weight", "Height", "Age")])
+```
+
+- The diagonal, we have our correlation coefficients in numerical form. 
+- On the diagonal, there are histograms of variables.
+- Below the diagonal, visual information is presented to help
+us understand the trend. 
+- This specific graph shows that height and weight are positively
+and strongly correlated. 
+- The relationships between age and height, as well as, age
+and weight are very weak. 
+- the horizontal red line in the panel below the main diagonal graphs, which indicates weak relationship
+
+### Step 3: Training a Model on the Data
+
+Use the codes
+```{r}
+fit<-lm(Weight~Height+Age, data=mlb)
+fit
+```
+### Step 4: Evaluating Model Performance
+
+We examine the model performance
+
+```{r}
+summary(fit)
+plot(fit, which = 1:2)
+```
+
+
+#### Note:
+
+- The model summary shows us how well the model fits the data.
+- Residuals: This tells us about the residuals. If we have extremely large or extremely small residuals for some observations compared to the rest of residuals, either they are outliers due to reporting error or the model fits data poorly. Check the minimum and the maximum residuals.
+- The residuals could be characterized by examining their range and by viewing the residual diagnostic plots.
+- Coefficients: In this section of the output, we look at the very right column that has symbols like stars or dots showing if that variable is significant and should be included in the model. 
+- However, if no symbol is included next to a variable, then
+it means this estimated covariate coefficient in the linear model covariance could be trivial.
+- Another thing we can look at is the Pr(>|t|) column. A number close to
+zero in this column indicates the row variable is significant, otherwise it could be removed from the model.
+Here, both Age and Height are significant.
+- R-squared What percent in $y$ is explained by the included predictors? 
+- A  well-fitted linear regression would have R-squared over 70%.
+
+- The diagnostic plots also help us understand the model quality.
+Residual vs. Fitted This is the main residual diagnostic plot, we can check ouliers.
+- Normal Q-Q plot examines the normality assumption of the model.
+The scattered dots represent the matched quantiles of the data and the normal
+distribution. If the Q-Q plot closely resembles a line bisecting the first quadrant in the plane, the normality assumption is valid. 
+
+### Step 5: Improving Model Performance
+
+- We can perform forward or backward selection of important features/predictors. 
+
+-In most cases,backward-selection is preferable because it tends to retain much larger models.
+
+-There are various criteria that can be used to evaluate a model.
+
+### Assignment
+Use the *Symptom_ChronicIllness* Data Set to fit several
+different Multiple Linear Regression models predicting clinically relevant outcomes. 
